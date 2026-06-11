@@ -184,6 +184,17 @@ class TrayTests(unittest.TestCase):
         self.assertEqual(tray.provider_display_name("openai_api"), "OpenAI API")
         self.assertEqual(tray.provider_display_name("other_provider"), "Other Provider")
 
+    def test_main_menu_keeps_only_refresh_settings_and_quit_actions(self) -> None:
+        self.assertEqual(tray.main_menu_action_labels(), ["↻ Refresh now", "⚙ Settings…", "Quit"])
+
+    def test_settings_window_collects_secondary_actions(self) -> None:
+        sections = tray.settings_window_sections()
+        self.assertIn("Sign in to Claude", sections["Authentication"])
+        self.assertIn("Diagnostics", sections["General"])
+        self.assertIn("Update now", sections["Updates"])
+        flattened = [label for labels in sections.values() for label in labels]
+        self.assertNotIn("Copy Claude login command", flattened)
+
     def test_check_tray_support_handles_missing_display(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
             ok, message = tray.check_tray_support()

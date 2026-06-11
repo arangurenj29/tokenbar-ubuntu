@@ -230,6 +230,20 @@ def provider_display_name(provider: str) -> str:
     return names.get(provider, provider.replace("_", " ").title())
 
 
+def main_menu_action_labels() -> list[str]:
+    return ["↻ Refresh now", "⚙ Settings…", "Quit"]
+
+
+def settings_window_sections() -> dict[str, list[str]]:
+    return {
+        "General": ["Create default config", "Open config file", "Dump JSON snapshot", "Diagnostics"],
+        "Authentication": ["Sign in to Codex", "Sign in to Claude", "Check auth status"],
+        "Notifications": ["Clear alert state", "Snooze 1 hour", "Snooze 4 hours"],
+        "Updates": ["Check for updates", "Update now"],
+        "Startup": ["Start TokenBar on login", "Do not start on login"],
+    }
+
+
 def launch_desktop_path(path: Path) -> None:
     subprocess.Popen(["xdg-open", str(path)])
 
@@ -339,19 +353,13 @@ class TokenBarTray:
         self.cached_snapshot_loaded = False
         self.is_refreshing = False
         self._refresh_lock = threading.Lock()
+        self.settings_window: Gtk.Window | None = None
         refresh_item = Gtk.MenuItem(label="↻ Refresh now")
         refresh_item.connect("activate", lambda *_: self.refresh())
         self.menu.append(refresh_item)
-        dump_item = Gtk.MenuItem(label="⇩ Dump JSON snapshot")
-        dump_item.connect("activate", self._dump_json)
-        self.menu.append(dump_item)
-        diagnostics_item = Gtk.MenuItem(label="🩺 Diagnostics")
-        diagnostics_item.connect("activate", self._show_diagnostics)
-        self.menu.append(diagnostics_item)
-        self.menu.append(self._build_settings_menu())
-        self.menu.append(self._build_notifications_menu())
-        self.menu.append(self._build_updates_menu())
-        self.menu.append(self._build_autostart_menu())
+        settings_item = Gtk.MenuItem(label="⚙ Settings…")
+        settings_item.connect("activate", self._open_settings_window)
+        self.menu.append(settings_item)
         quit_item = Gtk.MenuItem(label="Quit")
         quit_item.connect("activate", lambda *_: Gtk.main_quit())
         self.menu.append(quit_item)
@@ -382,83 +390,74 @@ class TokenBarTray:
         target.write_text(payload)
         show_info(f"Snapshot written to {target}")
 
-    def _build_settings_menu(self) -> Gtk.MenuItem:
-        root = Gtk.MenuItem(label="⚙ Settings / auth")
-        menu = Gtk.Menu()
+    def _open_settings_window(self, *_args) -> None:
+        if self.settings_window is not None:
+            self.settings_window.present()
+            return
 
-        init_config_item = Gtk.MenuItem(label="Create default config")
-        init_config_item.connect("activate", self._init_config)
-        menu.append(init_config_item)
+        window = Gtk.Window(title="TokenBar Settings")
+        window.set_default_size(460, 520)
+        window.set_border_width(12)
+        window.connect("destroy", self._on_settings_window_destroyed)
 
-        open_config_item = Gtk.MenuItem(label="Open config file")
-        open_config_item.connect("activate", self._open_config)
-        menu.append(open_config_item)
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        window.add(outer)
 
-        menu.append(Gtk.SeparatorMenuItem())
+        title = Gtk.Label(label="TokenBar Settings")
+        title.set_xalign(0)
+        title.get_style_context().add_class("title")
+        outer.pack_start(title, False, False, 0)
 
-        sign_in_codex_item = Gtk.MenuItem(label="Sign in to Codex")
-        sign_in_codex_item.connect("activate", lambda *_: self._sign_in_provider("codex"))
-        menu.append(sign_in_codex_item)
+        outer.pack_start(self._settings_section("General", [
+            (settings_window_sections()["General"][0], self._init_config),
+            (settings_window_sections()["General"][1], self._open_config),
+            (settings_window_sections()["General"][2], self._dump_json),
+            (settings_window_sections()["General"][3], self._show_diagnostics),
+        ]), False, False, 0)
 
-        sign_in_claude_item = Gtk.MenuItem(label="Sign in to Claude")
-        sign_in_claude_item.connect("activate", lambda *_: self._sign_in_provider("claude"))
-        menu.append(sign_in_claude_item)
+        outer.pack_start(self._settings_section("Authentication", [
+            (settings_window_sections()["Authentication"][0], lambda *_: self._sign_in_provider("codex")),
+            (settings_window_sections()["Authentication"][1], lambda *_: self._sign_in_provider("claude")),
+            (settings_window_sections()["Authentication"][2], self._check_auth_status),
+        ]), False, False, 0)
 
-        check_auth_item = Gtk.MenuItem(label="Check auth status")
-        check_auth_item.connect("activate", self._check_auth_status)
-        menu.append(check_auth_item)
+        outer.pack_start(self._settings_section("Notifications", [
+            (settings_window_sections()["Notifications"][0], self._clear_alerts),
+            (settings_window_sections()["Notifications"][1], lambda *_: self._snooze_alerts(60)),
+            (settings_window_sections()["Notifications"][2], lambda *_: self._snooze_alerts(240)),
+        ]), False, False, 0)
 
-        root.set_submenu(menu)
-        return root
+        outer.pack_start(self._settings_section("Updates", [
+            (settings_window_sections()["Updates"][0], self._check_updates),
+            (settings_window_sections()["Updates"][1], self._update_now),
+        ]), False, False, 0)
 
-    def _build_notifications_menu(self) -> Gtk.MenuItem:
-        root = Gtk.MenuItem(label="🔔 Notifications")
-        menu = Gtk.Menu()
+        outer.pack_start(self._settings_section(f"Startup ({autostart_status()})", [
+            (settings_window_sections()["Startup"][0], self._install_autostart),
+            (settings_window_sections()["Startup"][1], self._remove_autostart),
+        ]), False, False, 0)
 
-        clear_item = Gtk.MenuItem(label="Clear alert state")
-        clear_item.connect("activate", self._clear_alerts)
-        menu.append(clear_item)
+        close = Gtk.Button(label="Close")
+        close.connect("clicked", lambda *_: window.destroy())
+        outer.pack_end(close, False, False, 0)
 
-        snooze_1h_item = Gtk.MenuItem(label="Snooze 1 hour")
-        snooze_1h_item.connect("activate", lambda *_: self._snooze_alerts(60))
-        menu.append(snooze_1h_item)
+        self.settings_window = window
+        window.show_all()
+        window.present()
 
-        snooze_4h_item = Gtk.MenuItem(label="Snooze 4 hours")
-        snooze_4h_item.connect("activate", lambda *_: self._snooze_alerts(240))
-        menu.append(snooze_4h_item)
+    def _on_settings_window_destroyed(self, *_args) -> None:
+        self.settings_window = None
 
-        root.set_submenu(menu)
-        return root
-
-    def _build_autostart_menu(self) -> Gtk.MenuItem:
-        root = Gtk.MenuItem(label=f"🚀 Autostart ({autostart_status()})")
-        menu = Gtk.Menu()
-
-        install_item = Gtk.MenuItem(label="Start TokenBar on login")
-        install_item.connect("activate", self._install_autostart)
-        menu.append(install_item)
-
-        remove_item = Gtk.MenuItem(label="Do not start on login")
-        remove_item.connect("activate", self._remove_autostart)
-        menu.append(remove_item)
-
-        root.set_submenu(menu)
-        return root
-
-    def _build_updates_menu(self) -> Gtk.MenuItem:
-        root = Gtk.MenuItem(label="⬆ Updates")
-        menu = Gtk.Menu()
-
-        check_item = Gtk.MenuItem(label="Check for updates")
-        check_item.connect("activate", self._check_updates)
-        menu.append(check_item)
-
-        update_item = Gtk.MenuItem(label="Update now")
-        update_item.connect("activate", self._update_now)
-        menu.append(update_item)
-
-        root.set_submenu(menu)
-        return root
+    def _settings_section(self, title: str, actions: list[tuple[str, Any]]) -> Gtk.Frame:
+        frame = Gtk.Frame(label=title)
+        grid = Gtk.Grid(column_spacing=8, row_spacing=8, margin_top=8, margin_bottom=8, margin_start=8, margin_end=8)
+        frame.add(grid)
+        for index, (label, callback) in enumerate(actions):
+            button = Gtk.Button(label=label)
+            button.set_hexpand(True)
+            button.connect("clicked", callback)
+            grid.attach(button, index % 2, index // 2, 1, 1)
+        return frame
 
     def _init_config(self, *_args) -> None:
         path, created = ensure_config_file()

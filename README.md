@@ -42,7 +42,7 @@ The original CodexBar repository is used as the product inspiration/reference, b
 - Reads real local Claude credentials from `~/.claude/.credentials.json`
 - Calls the Claude OAuth usage endpoint documented by CodexBar
 - Optionally reads OpenAI API cost data from `OPENAI_ADMIN_KEY` / `OPENAI_API_KEY`
-- Shows an autonomous Linux tray menu that prefers Ayatana AppIndicator and falls back only when needed
+- Shows a compact Linux tray menu that prefers Ayatana AppIndicator and falls back only when needed
 - Renders compact per-provider usage bars in the tray menu
 - Shows refresh freshness (`updated X ago`), stale data state, and low-quota warning markers
 - Refreshes automatically every 120 seconds by default
@@ -153,14 +153,14 @@ Best expected environment:
 ## Refresh and alert behavior
 
 - Data refreshes automatically every 120 seconds by default.
-- Manual refresh is available from the tray menu.
+- Manual refresh stays directly available from the tray menu.
 - TokenBar avoids overlapping refreshes if a refresh is already running.
 - The menu shows when data was last updated and marks stale data after about 15 minutes.
 - Providers at or below 10% left are marked as low quota by default.
 - The latest snapshot is saved to `~/.cache/tokenbar/latest-snapshot.json` after successful refreshes.
 - On startup, cached data is shown immediately while the first live refresh runs.
 - Desktop notifications are de-duplicated by active alert state to avoid spamming every refresh.
-- Alert state can be cleared or snoozed from the tray menu or CLI.
+- Alert state can be cleared or snoozed from the Settings window or CLI.
 
 ## Minimal settings config
 
@@ -196,7 +196,7 @@ Notes:
 - Missing config is fine; TokenBar uses the defaults above.
 - Invalid config is ignored safely and reported by `--config-dump`.
 - You can create the default file from the CLI with `./scripts/run_tokenbar.sh --init-config`.
-- The tray menu also includes **Settings / auth** actions to create/open the config, launch Codex/Claude sign-in in a terminal, and check auth status.
+- The tray menu keeps only provider status, **Refresh now**, **Settings…**, and **Quit**. The Settings window contains config, auth, diagnostics, notifications, updates, and autostart actions.
 - `codex` and `claude` are enabled by default.
 - `openai_api` is disabled by default and only works when `OPENAI_ADMIN_KEY` or `OPENAI_API_KEY` is exported.
 - Unknown provider keys are ignored for now so the MVP stays limited to Codex/OpenAI and Claude Code.
@@ -225,8 +225,8 @@ Use `--remove-autostart` to remove it.
 
 TokenBar classifies common provider failures and shows short recovery hints directly in the tray menu:
 
-- Codex auth missing or expired → use **Settings / auth → Sign in to Codex**
-- Claude auth missing or expired → use **Settings / auth → Sign in to Claude**
+- Codex auth missing or expired → use **Settings… → Sign in to Codex**
+- Claude auth missing or expired → use **Settings… → Sign in to Claude**
 - Network/DNS failure → `Check internet connection`
 - Temporary provider/API failures → try refreshing again later
 
