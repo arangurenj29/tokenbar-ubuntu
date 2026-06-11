@@ -158,7 +158,7 @@ class TrayTests(unittest.TestCase):
 
     def test_provider_login_command_for_supported_providers(self) -> None:
         self.assertEqual(tray.provider_login_command("codex"), "codex login")
-        self.assertEqual(tray.provider_login_command("claude"), "claude login")
+        self.assertEqual(tray.provider_login_command("claude"), "claude auth login")
         self.assertIsNone(tray.provider_login_command("unknown"))
 
     def test_provider_display_name_polishes_known_names(self) -> None:

@@ -34,7 +34,7 @@ class Snapshot:
 
 LOGIN_GUIDANCE = {
     "codex": "Run: codex login",
-    "claude": "Run: claude login",
+    "claude": "Run: claude auth login",
     "openai": "Set OPENAI_ADMIN_KEY or OPENAI_API_KEY",
 }
 

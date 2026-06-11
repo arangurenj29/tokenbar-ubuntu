@@ -95,7 +95,7 @@ class ProviderTests(unittest.TestCase):
         snapshot = providers.fetch_claude()
         self.assertFalse(snapshot.ok)
         self.assertEqual(snapshot.status_label, "auth missing")
-        self.assertEqual(snapshot.guidance, "Run: claude login")
+        self.assertEqual(snapshot.guidance, "Run: claude auth login")
 
     @patch("tokenbar.providers._request_json")
     @patch("tokenbar.providers._read_json", return_value={"claudeAiOauth": {"accessToken": "tok"}})
@@ -105,7 +105,7 @@ class ProviderTests(unittest.TestCase):
         snapshot = providers.fetch_claude()
         self.assertFalse(snapshot.ok)
         self.assertEqual(snapshot.status_label, "auth expired")
-        self.assertEqual(snapshot.guidance, "Run: claude login")
+        self.assertEqual(snapshot.guidance, "Run: claude auth login")
 
     @patch("tokenbar.providers.fetch_openai_api", return_value=None)
     @patch("tokenbar.providers.fetch_claude", return_value=Snapshot("claude", "oauth", True, "ok"))

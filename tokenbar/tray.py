@@ -232,7 +232,7 @@ def provider_display_name(provider: str) -> str:
 def provider_login_command(provider: str) -> str | None:
     commands = {
         "codex": "codex login",
-        "claude": "claude login",
+        "claude": "claude auth login",
         "openai": "export OPENAI_ADMIN_KEY=...",
         "openai_api": "export OPENAI_ADMIN_KEY=...",
     }

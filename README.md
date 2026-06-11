@@ -226,7 +226,7 @@ Use `--remove-autostart` to remove it.
 TokenBar classifies common provider failures and shows short recovery hints directly in the tray menu:
 
 - Codex auth missing or expired → `Run: codex login`
-- Claude auth missing or expired → `Run: claude login`
+- Claude auth missing or expired → `Run: claude auth login`
 - Network/DNS failure → `Check internet connection`
 - Temporary provider/API failures → try refreshing again later
 
