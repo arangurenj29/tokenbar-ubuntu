@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+
+# Local TokenBar data/config examples
+*.local
+*.env
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+
+# Build/staging artifacts
+build/
+dist/
+*.egg-info/
