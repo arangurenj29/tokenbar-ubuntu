@@ -178,13 +178,14 @@ class TrayTests(unittest.TestCase):
         show_info.assert_called_once_with("Copied: claude auth login")
 
     @patch("tokenbar.tray.copy_text_to_clipboard", return_value=(False, "clipboard unavailable"))
-    @patch("tokenbar.tray.show_info")
-    def test_copy_command_shows_manual_command_when_clipboard_fails(self, show_info, copy_text) -> None:
+    @patch("tokenbar.tray.show_copy_dialog")
+    def test_copy_command_shows_manual_command_when_clipboard_fails(self, show_copy_dialog, copy_text) -> None:
         app = object.__new__(tray.TokenBarTray)
         app._copy_command("claude")
         copy_text.assert_called_once_with("claude auth login")
-        self.assertIn("Run manually: claude auth login", show_info.call_args.args[0])
-        self.assertIn("clipboard unavailable", show_info.call_args.args[0])
+        show_copy_dialog.assert_called_once()
+        self.assertEqual(show_copy_dialog.call_args.args[0], "claude auth login")
+        self.assertIn("clipboard unavailable", show_copy_dialog.call_args.args[1])
 
     def test_provider_display_name_polishes_known_names(self) -> None:
         self.assertEqual(tray.provider_display_name("codex"), "Codex")

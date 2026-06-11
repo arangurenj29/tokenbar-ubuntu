@@ -253,24 +253,29 @@ def copy_text_to_clipboard(text: str) -> tuple[bool, str]:
     for command, name in helpers:
         try:
             subprocess.run(command, input=text, text=True, timeout=3, check=True)
+            _log_copy_attempt(f"copied with {name}: {text}")
             return True, name
         except Exception as exc:
             errors.append(f"{name}: {type(exc).__name__}: {exc}")
 
     try:
-        clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-        clipboard.set_text(text, -1)
-        clipboard.store()
+        for selection in (Gdk.SELECTION_CLIPBOARD, Gdk.SELECTION_PRIMARY):
+            clipboard = Gtk.Clipboard.get(selection)
+            clipboard.set_text(text, -1)
+            clipboard.set_can_store(None)
+            clipboard.store()
+        display = Gdk.Display.get_default()
+        if display is not None:
+            display.flush()
         while Gtk.events_pending():
             Gtk.main_iteration_do(False)
-        copied = clipboard.wait_for_text()
-        if copied == text:
-            return True, "Gtk clipboard"
-        errors.append("Gtk clipboard did not echo copied text")
+        _log_copy_attempt(f"copied with Gtk clipboard fallback: {text}")
+        return True, "Gtk clipboard"
     except Exception as exc:
         errors.append(f"Gtk clipboard: {type(exc).__name__}: {exc}")
 
     detail = "; ".join(errors) if errors else "no clipboard helper available"
+    _log_copy_attempt(f"copy failed for {text}: {detail}")
     return False, detail
 
 
@@ -283,6 +288,36 @@ def show_info(message: str) -> None:
         subprocess.Popen(["zenity", "--info", f"--text={message}"])
     except FileNotFoundError:
         print(message)
+
+
+def show_copy_dialog(command: str, detail: str | None = None) -> None:
+    dialog = Gtk.MessageDialog(
+        transient_for=None,
+        flags=0,
+        message_type=Gtk.MessageType.INFO,
+        buttons=Gtk.ButtonsType.OK,
+        text="Copy this command manually",
+    )
+    dialog.format_secondary_text((detail + "\n\n") if detail else "")
+    box = dialog.get_content_area()
+    entry = Gtk.Entry()
+    entry.set_text(command)
+    entry.set_editable(False)
+    entry.set_can_focus(True)
+    entry.select_region(0, -1)
+    box.pack_end(entry, False, False, 8)
+    dialog.show_all()
+    entry.grab_focus()
+    dialog.run()
+    dialog.destroy()
+
+
+def _log_copy_attempt(message: str) -> None:
+    try:
+        with (Path.home() / ".cache" / "tokenbar" / "clipboard.log").open("a") as handle:
+            handle.write(f"{datetime.now().isoformat(timespec='seconds')} {message}\n")
+    except Exception:
+        pass
 
 
 class BaseTray:
@@ -494,7 +529,7 @@ class TokenBarTray:
         if ok:
             show_info(f"Copied: {command}")
         else:
-            show_info(f"Could not copy automatically. Run manually: {command}\n\nClipboard error: {detail}")
+            show_copy_dialog(command, f"Automatic clipboard copy failed: {detail}")
 
     def _show_diagnostics(self, *_args) -> None:
         diagnostics = collect_diagnostics(
