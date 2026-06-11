@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
 import subprocess
 import threading
 from datetime import datetime, timedelta
@@ -15,6 +14,7 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 from gi.repository import GLib, Gtk, Gdk
 
+from .auth import all_auth_status, launch_interactive_auth, provider_login_command
 from .autostart import autostart_status, install_autostart, remove_autostart
 from .cache import load_snapshot_cache, save_snapshot_cache
 from .config import TokenBarConfig, ensure_config_file
@@ -230,55 +230,6 @@ def provider_display_name(provider: str) -> str:
     return names.get(provider, provider.replace("_", " ").title())
 
 
-def provider_login_command(provider: str) -> str | None:
-    commands = {
-        "codex": "codex login",
-        "claude": "claude auth login",
-        "openai": "export OPENAI_ADMIN_KEY=...",
-        "openai_api": "export OPENAI_ADMIN_KEY=...",
-    }
-    return commands.get(provider)
-
-
-def copy_text_to_clipboard(text: str) -> tuple[bool, str]:
-    helpers = []
-    if os.environ.get("WAYLAND_DISPLAY") and shutil.which("wl-copy"):
-        helpers.append((["wl-copy"], "wl-copy"))
-    if os.environ.get("DISPLAY") and shutil.which("xclip"):
-        helpers.append((["xclip", "-selection", "clipboard"], "xclip"))
-    if os.environ.get("DISPLAY") and shutil.which("xsel"):
-        helpers.append((["xsel", "--clipboard", "--input"], "xsel"))
-
-    errors: list[str] = []
-    for command, name in helpers:
-        try:
-            subprocess.run(command, input=text, text=True, timeout=3, check=True)
-            _log_copy_attempt(f"copied with {name}: {text}")
-            return True, name
-        except Exception as exc:
-            errors.append(f"{name}: {type(exc).__name__}: {exc}")
-
-    try:
-        for selection in (Gdk.SELECTION_CLIPBOARD, Gdk.SELECTION_PRIMARY):
-            clipboard = Gtk.Clipboard.get(selection)
-            clipboard.set_text(text, -1)
-            clipboard.set_can_store(None)
-            clipboard.store()
-        display = Gdk.Display.get_default()
-        if display is not None:
-            display.flush()
-        while Gtk.events_pending():
-            Gtk.main_iteration_do(False)
-        _log_copy_attempt(f"copied with Gtk clipboard fallback: {text}")
-        return True, "Gtk clipboard"
-    except Exception as exc:
-        errors.append(f"Gtk clipboard: {type(exc).__name__}: {exc}")
-
-    detail = "; ".join(errors) if errors else "no clipboard helper available"
-    _log_copy_attempt(f"copy failed for {text}: {detail}")
-    return False, detail
-
-
 def launch_desktop_path(path: Path) -> None:
     subprocess.Popen(["xdg-open", str(path)])
 
@@ -290,13 +241,13 @@ def show_info(message: str) -> None:
         print(message)
 
 
-def show_copy_dialog(command: str, detail: str | None = None) -> None:
+def show_command_dialog(command: str, detail: str | None = None) -> None:
     dialog = Gtk.MessageDialog(
         transient_for=None,
         flags=0,
         message_type=Gtk.MessageType.INFO,
         buttons=Gtk.ButtonsType.OK,
-        text="Copy this command manually",
+        text="Run this command manually",
     )
     dialog.format_secondary_text((detail + "\n\n") if detail else "")
     box = dialog.get_content_area()
@@ -312,12 +263,6 @@ def show_copy_dialog(command: str, detail: str | None = None) -> None:
     dialog.destroy()
 
 
-def _log_copy_attempt(message: str) -> None:
-    try:
-        with (Path.home() / ".cache" / "tokenbar" / "clipboard.log").open("a") as handle:
-            handle.write(f"{datetime.now().isoformat(timespec='seconds')} {message}\n")
-    except Exception:
-        pass
 
 
 class BaseTray:
@@ -451,13 +396,17 @@ class TokenBarTray:
 
         menu.append(Gtk.SeparatorMenuItem())
 
-        copy_codex_item = Gtk.MenuItem(label="Copy Codex login command")
-        copy_codex_item.connect("activate", lambda *_: self._copy_command("codex"))
-        menu.append(copy_codex_item)
+        sign_in_codex_item = Gtk.MenuItem(label="Sign in to Codex")
+        sign_in_codex_item.connect("activate", lambda *_: self._sign_in_provider("codex"))
+        menu.append(sign_in_codex_item)
 
-        copy_claude_item = Gtk.MenuItem(label="Copy Claude login command")
-        copy_claude_item.connect("activate", lambda *_: self._copy_command("claude"))
-        menu.append(copy_claude_item)
+        sign_in_claude_item = Gtk.MenuItem(label="Sign in to Claude")
+        sign_in_claude_item.connect("activate", lambda *_: self._sign_in_provider("claude"))
+        menu.append(sign_in_claude_item)
+
+        check_auth_item = Gtk.MenuItem(label="Check auth status")
+        check_auth_item.connect("activate", self._check_auth_status)
+        menu.append(check_auth_item)
 
         root.set_submenu(menu)
         return root
@@ -520,16 +469,25 @@ class TokenBarTray:
         path, _created = ensure_config_file()
         launch_desktop_path(path)
 
-    def _copy_command(self, provider: str) -> None:
-        command = provider_login_command(provider)
-        if command is None:
-            show_info(f"No login command for provider: {provider}")
+    def _sign_in_provider(self, provider: str) -> None:
+        result = launch_interactive_auth(provider)
+        if result.ok:
+            show_info(result.message)
+            GLib.timeout_add_seconds(5, self._refresh_after_auth)
             return
-        ok, detail = copy_text_to_clipboard(command)
-        if ok:
-            show_info(f"Copied: {command}")
-        else:
-            show_copy_dialog(command, f"Automatic clipboard copy failed: {detail}")
+        command = result.command or provider_login_command(provider) or provider
+        show_command_dialog(command, result.message)
+
+    def _refresh_after_auth(self) -> bool:
+        self.refresh()
+        return False
+
+    def _check_auth_status(self, *_args) -> None:
+        def worker() -> None:
+            lines = [message for _provider, _ok, message in all_auth_status()]
+            GLib.idle_add(show_info, "\n".join(lines))
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def _show_diagnostics(self, *_args) -> None:
         diagnostics = collect_diagnostics(

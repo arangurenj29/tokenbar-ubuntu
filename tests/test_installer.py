@@ -98,7 +98,6 @@ class InstallerTests(unittest.TestCase):
         self.assertTrue(report["python3"])
         self.assertTrue(report["gtk"])
         self.assertTrue(report["indicator"])
-        self.assertTrue(report["clipboard_helper"])
 
 
 if __name__ == "__main__":

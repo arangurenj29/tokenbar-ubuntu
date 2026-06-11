@@ -115,13 +115,11 @@ Start TokenBar automatically on login:
 Install recommended Ubuntu desktop dependencies, then install/uninstall into the current user's Ubuntu desktop paths:
 
 ```bash
-sudo apt install gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1 libayatana-appindicator3-1 zenity libnotify-bin wl-clipboard
+sudo apt install gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1 libayatana-appindicator3-1 zenity libnotify-bin
 ./scripts/run_tokenbar.sh --install-check
 ./scripts/install_tokenbar.sh
 tokenbar --doctor
 ```
-
-`wl-clipboard` provides `wl-copy`, which makes the tray login-command buttons copy reliably on Wayland.
 
 The installer writes only user-level files:
 
@@ -198,7 +196,7 @@ Notes:
 - Missing config is fine; TokenBar uses the defaults above.
 - Invalid config is ignored safely and reported by `--config-dump`.
 - You can create the default file from the CLI with `./scripts/run_tokenbar.sh --init-config`.
-- The tray menu also includes **Settings / auth** actions to create/open the config and copy login commands.
+- The tray menu also includes **Settings / auth** actions to create/open the config, launch Codex/Claude sign-in in a terminal, and check auth status.
 - `codex` and `claude` are enabled by default.
 - `openai_api` is disabled by default and only works when `OPENAI_ADMIN_KEY` or `OPENAI_API_KEY` is exported.
 - Unknown provider keys are ignored for now so the MVP stays limited to Codex/OpenAI and Claude Code.
@@ -227,8 +225,8 @@ Use `--remove-autostart` to remove it.
 
 TokenBar classifies common provider failures and shows short recovery hints directly in the tray menu:
 
-- Codex auth missing or expired → `Run: codex login`
-- Claude auth missing or expired → `Run: claude auth login`
+- Codex auth missing or expired → use **Settings / auth → Sign in to Codex**
+- Claude auth missing or expired → use **Settings / auth → Sign in to Claude**
 - Network/DNS failure → `Check internet connection`
 - Temporary provider/API failures → try refreshing again later
 

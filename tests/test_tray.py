@@ -156,36 +156,27 @@ class TrayTests(unittest.TestCase):
         self.assertIn("15% left", line)
         self.assertIn("LOW", line)
 
-    def test_provider_login_command_for_supported_providers(self) -> None:
-        self.assertEqual(tray.provider_login_command("codex"), "codex login")
-        self.assertEqual(tray.provider_login_command("claude"), "claude auth login")
-        self.assertIsNone(tray.provider_login_command("unknown"))
-
-    @patch("tokenbar.tray.copy_text_to_clipboard", return_value=(True, "test"))
+    @patch("tokenbar.tray.GLib.timeout_add_seconds")
     @patch("tokenbar.tray.show_info")
-    def test_copy_command_copies_codex_login(self, show_info, copy_text) -> None:
+    @patch("tokenbar.tray.launch_interactive_auth")
+    def test_sign_in_provider_opens_terminal_and_schedules_refresh(self, launch_auth, show_info, timeout_add) -> None:
+        launch_auth.return_value.ok = True
+        launch_auth.return_value.message = "Opened terminal for Claude sign-in."
         app = object.__new__(tray.TokenBarTray)
-        app._copy_command("codex")
-        copy_text.assert_called_once_with("codex login")
-        show_info.assert_called_once_with("Copied: codex login")
+        app._sign_in_provider("claude")
+        launch_auth.assert_called_once_with("claude")
+        show_info.assert_called_once_with("Opened terminal for Claude sign-in.")
+        timeout_add.assert_called_once()
 
-    @patch("tokenbar.tray.copy_text_to_clipboard", return_value=(True, "test"))
-    @patch("tokenbar.tray.show_info")
-    def test_copy_command_copies_claude_auth_login(self, show_info, copy_text) -> None:
+    @patch("tokenbar.tray.show_command_dialog")
+    @patch("tokenbar.tray.launch_interactive_auth")
+    def test_sign_in_provider_shows_manual_command_when_terminal_missing(self, launch_auth, show_dialog) -> None:
+        launch_auth.return_value.ok = False
+        launch_auth.return_value.command = "codex login"
+        launch_auth.return_value.message = "Could not open a terminal"
         app = object.__new__(tray.TokenBarTray)
-        app._copy_command("claude")
-        copy_text.assert_called_once_with("claude auth login")
-        show_info.assert_called_once_with("Copied: claude auth login")
-
-    @patch("tokenbar.tray.copy_text_to_clipboard", return_value=(False, "clipboard unavailable"))
-    @patch("tokenbar.tray.show_copy_dialog")
-    def test_copy_command_shows_manual_command_when_clipboard_fails(self, show_copy_dialog, copy_text) -> None:
-        app = object.__new__(tray.TokenBarTray)
-        app._copy_command("claude")
-        copy_text.assert_called_once_with("claude auth login")
-        show_copy_dialog.assert_called_once()
-        self.assertEqual(show_copy_dialog.call_args.args[0], "claude auth login")
-        self.assertIn("clipboard unavailable", show_copy_dialog.call_args.args[1])
+        app._sign_in_provider("codex")
+        show_dialog.assert_called_once_with("codex login", "Could not open a terminal")
 
     def test_provider_display_name_polishes_known_names(self) -> None:
         self.assertEqual(tray.provider_display_name("codex"), "Codex")

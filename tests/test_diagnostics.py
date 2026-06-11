@@ -28,7 +28,6 @@ class DiagnosticsTests(unittest.TestCase):
         self.assertIn("TokenBar diagnostics", text)
         self.assertIn("Tray backend: GtkStatusIcon", text)
         self.assertIn("Codex auth:", text)
-        self.assertIn("Clipboard helper:", text)
 
 
 if __name__ == "__main__":
