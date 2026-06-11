@@ -52,6 +52,7 @@ def dependency_report() -> dict[str, Any]:
         "notify_send": shutil.which("notify-send") is not None,
         "xdg_open": shutil.which("xdg-open") is not None,
         "zenity": shutil.which("zenity") is not None,
+        "clipboard_helper": any(shutil.which(name) is not None for name in ("wl-copy", "xclip", "xsel")),
         "gtk": False,
         "indicator": False,
         "errors": [],

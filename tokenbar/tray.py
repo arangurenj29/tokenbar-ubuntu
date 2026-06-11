@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import threading
 from datetime import datetime, timedelta
@@ -239,6 +240,40 @@ def provider_login_command(provider: str) -> str | None:
     return commands.get(provider)
 
 
+def copy_text_to_clipboard(text: str) -> tuple[bool, str]:
+    helpers = []
+    if os.environ.get("WAYLAND_DISPLAY") and shutil.which("wl-copy"):
+        helpers.append((["wl-copy"], "wl-copy"))
+    if os.environ.get("DISPLAY") and shutil.which("xclip"):
+        helpers.append((["xclip", "-selection", "clipboard"], "xclip"))
+    if os.environ.get("DISPLAY") and shutil.which("xsel"):
+        helpers.append((["xsel", "--clipboard", "--input"], "xsel"))
+
+    errors: list[str] = []
+    for command, name in helpers:
+        try:
+            subprocess.run(command, input=text, text=True, timeout=3, check=True)
+            return True, name
+        except Exception as exc:
+            errors.append(f"{name}: {type(exc).__name__}: {exc}")
+
+    try:
+        clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+        clipboard.set_text(text, -1)
+        clipboard.store()
+        while Gtk.events_pending():
+            Gtk.main_iteration_do(False)
+        copied = clipboard.wait_for_text()
+        if copied == text:
+            return True, "Gtk clipboard"
+        errors.append("Gtk clipboard did not echo copied text")
+    except Exception as exc:
+        errors.append(f"Gtk clipboard: {type(exc).__name__}: {exc}")
+
+    detail = "; ".join(errors) if errors else "no clipboard helper available"
+    return False, detail
+
+
 def launch_desktop_path(path: Path) -> None:
     subprocess.Popen(["xdg-open", str(path)])
 
@@ -453,11 +488,13 @@ class TokenBarTray:
     def _copy_command(self, provider: str) -> None:
         command = provider_login_command(provider)
         if command is None:
+            show_info(f"No login command for provider: {provider}")
             return
-        clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-        clipboard.set_text(command, -1)
-        clipboard.store()
-        show_info(f"Copied: {command}")
+        ok, detail = copy_text_to_clipboard(command)
+        if ok:
+            show_info(f"Copied: {command}")
+        else:
+            show_info(f"Could not copy automatically. Run manually: {command}\n\nClipboard error: {detail}")
 
     def _show_diagnostics(self, *_args) -> None:
         diagnostics = collect_diagnostics(

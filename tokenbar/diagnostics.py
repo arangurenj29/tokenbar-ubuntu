@@ -27,6 +27,7 @@ def collect_diagnostics(
             "session_type": os.environ.get("XDG_SESSION_TYPE"),
             "notify_send": shutil.which("notify-send") is not None,
             "zenity": shutil.which("zenity") is not None,
+            "clipboard_helper": next((name for name in ("wl-copy", "xclip", "xsel") if shutil.which(name)), None),
         },
         "tray": {
             "backend": tray_backend,
@@ -66,6 +67,7 @@ def format_diagnostics_text(diagnostics: dict[str, Any]) -> str:
         f"Wayland: {env['wayland_display']} · DISPLAY: {env['display']}",
         f"Desktop: {env.get('xdg_current_desktop') or 'unknown'} · Session: {env.get('session_type') or 'unknown'}",
         f"notify-send: {env['notify_send']} · zenity: {env['zenity']}",
+        f"Clipboard helper: {env.get('clipboard_helper') or 'missing'}",
         "",
         f"Config: {paths['config']} ({'exists' if paths['config_exists'] else 'missing'})",
         f"Cache: {paths['cache']} ({'exists' if paths['cache_exists'] else 'missing'})",

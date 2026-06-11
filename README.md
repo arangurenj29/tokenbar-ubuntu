@@ -112,14 +112,16 @@ Start TokenBar automatically on login:
 ./scripts/run_tokenbar.sh --remove-autostart
 ```
 
-Install/uninstall into the current user's Ubuntu desktop paths:
+Install recommended Ubuntu desktop dependencies, then install/uninstall into the current user's Ubuntu desktop paths:
 
 ```bash
+sudo apt install gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1 libayatana-appindicator3-1 zenity libnotify-bin wl-clipboard
 ./scripts/run_tokenbar.sh --install-check
 ./scripts/install_tokenbar.sh
 tokenbar --doctor
-./scripts/uninstall_tokenbar.sh
 ```
+
+`wl-clipboard` provides `wl-copy`, which makes the tray login-command buttons copy reliably on Wayland.
 
 The installer writes only user-level files:
 
