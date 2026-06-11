@@ -189,11 +189,18 @@ class TrayTests(unittest.TestCase):
 
     def test_settings_window_collects_secondary_actions(self) -> None:
         sections = tray.settings_window_sections()
-        self.assertIn("Sign in to Claude", sections["Authentication"])
-        self.assertIn("Diagnostics", sections["General"])
-        self.assertIn("Update now", sections["Updates"])
+        self.assertEqual(list(sections), ["Account", "App", "Notifications", "Maintenance"])
+        self.assertIn("Sign in to Claude", sections["Account"])
+        self.assertIn("Diagnostics", sections["App"])
+        self.assertIn("Update now", sections["Maintenance"])
         flattened = [label for labels in sections.values() for label in labels]
         self.assertNotIn("Copy Claude login command", flattened)
+
+    def test_settings_window_has_polished_copy(self) -> None:
+        self.assertIn("Manage providers", tray.settings_window_subtitle())
+        descriptions = tray.settings_action_descriptions()
+        self.assertIn("terminal", descriptions["Sign in to Claude"])
+        self.assertIn("GNOME", descriptions["Start TokenBar on login"])
 
     def test_check_tray_support_handles_missing_display(self) -> None:
         with patch.dict(os.environ, {}, clear=True):

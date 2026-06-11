@@ -236,11 +236,33 @@ def main_menu_action_labels() -> list[str]:
 
 def settings_window_sections() -> dict[str, list[str]]:
     return {
-        "General": ["Create default config", "Open config file", "Dump JSON snapshot", "Diagnostics"],
-        "Authentication": ["Sign in to Codex", "Sign in to Claude", "Check auth status"],
+        "Account": ["Sign in to Codex", "Sign in to Claude", "Check auth status"],
+        "App": ["Open config file", "Create default config", "Diagnostics", "Dump JSON snapshot"],
         "Notifications": ["Clear alert state", "Snooze 1 hour", "Snooze 4 hours"],
-        "Updates": ["Check for updates", "Update now"],
-        "Startup": ["Start TokenBar on login", "Do not start on login"],
+        "Maintenance": ["Check for updates", "Update now", "Start TokenBar on login", "Do not start on login"],
+    }
+
+
+def settings_window_subtitle() -> str:
+    return "Manage providers, alerts, updates, and startup behavior."
+
+
+def settings_action_descriptions() -> dict[str, str]:
+    return {
+        "Sign in to Codex": "Open the Codex CLI login flow in a terminal.",
+        "Sign in to Claude": "Open the Claude Code login flow in a terminal.",
+        "Check auth status": "Verify local Codex and Claude authentication.",
+        "Open config file": "Edit ~/.config/tokenbar/config.json.",
+        "Create default config": "Create the default config if it is missing.",
+        "Diagnostics": "Show display, auth, config, and tray diagnostics.",
+        "Dump JSON snapshot": "Write the latest provider data to ~/.cache.",
+        "Clear alert state": "Reset notification dedupe and active alert state.",
+        "Snooze 1 hour": "Pause TokenBar notifications for one hour.",
+        "Snooze 4 hours": "Pause TokenBar notifications for four hours.",
+        "Check for updates": "Compare the installed app with GitHub main.",
+        "Update now": "Download and install the latest GitHub version.",
+        "Start TokenBar on login": "Enable the GNOME autostart entry.",
+        "Do not start on login": "Remove the GNOME autostart entry.",
     }
 
 
@@ -396,50 +418,63 @@ class TokenBarTray:
             return
 
         window = Gtk.Window(title="TokenBar Settings")
-        window.set_default_size(460, 520)
-        window.set_border_width(12)
+        window.set_default_size(560, 640)
         window.connect("destroy", self._on_settings_window_destroyed)
+        self._install_settings_css()
 
-        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        outer.get_style_context().add_class("tokenbar-settings")
         window.add(outer)
 
-        title = Gtk.Label(label="TokenBar Settings")
-        title.set_xalign(0)
-        title.get_style_context().add_class("title")
-        outer.pack_start(title, False, False, 0)
+        outer.pack_start(self._settings_header(), False, False, 0)
+        outer.pack_start(self._settings_status_panel(), False, False, 0)
 
-        outer.pack_start(self._settings_section("General", [
-            (settings_window_sections()["General"][0], self._init_config),
-            (settings_window_sections()["General"][1], self._open_config),
-            (settings_window_sections()["General"][2], self._dump_json),
-            (settings_window_sections()["General"][3], self._show_diagnostics),
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        content.set_margin_top(12)
+        content.set_margin_bottom(12)
+        content.set_margin_start(16)
+        content.set_margin_end(16)
+        scroll.add(content)
+
+        sections = settings_window_sections()
+        content.pack_start(self._settings_section("Account", [
+            (sections["Account"][0], lambda *_: self._sign_in_provider("codex")),
+            (sections["Account"][1], lambda *_: self._sign_in_provider("claude")),
+            (sections["Account"][2], self._check_auth_status),
+        ]), False, False, 0)
+        content.pack_start(self._settings_section("App", [
+            (sections["App"][0], self._open_config),
+            (sections["App"][1], self._init_config),
+            (sections["App"][2], self._show_diagnostics),
+            (sections["App"][3], self._dump_json),
+        ]), False, False, 0)
+        content.pack_start(self._settings_section("Notifications", [
+            (sections["Notifications"][0], self._clear_alerts),
+            (sections["Notifications"][1], lambda *_: self._snooze_alerts(60)),
+            (sections["Notifications"][2], lambda *_: self._snooze_alerts(240)),
+        ]), False, False, 0)
+        content.pack_start(self._settings_section("Maintenance", [
+            (sections["Maintenance"][0], self._check_updates),
+            (sections["Maintenance"][1], self._update_now),
+            (sections["Maintenance"][2], self._install_autostart),
+            (sections["Maintenance"][3], self._remove_autostart),
         ]), False, False, 0)
 
-        outer.pack_start(self._settings_section("Authentication", [
-            (settings_window_sections()["Authentication"][0], lambda *_: self._sign_in_provider("codex")),
-            (settings_window_sections()["Authentication"][1], lambda *_: self._sign_in_provider("claude")),
-            (settings_window_sections()["Authentication"][2], self._check_auth_status),
-        ]), False, False, 0)
+        outer.pack_start(scroll, True, True, 0)
 
-        outer.pack_start(self._settings_section("Notifications", [
-            (settings_window_sections()["Notifications"][0], self._clear_alerts),
-            (settings_window_sections()["Notifications"][1], lambda *_: self._snooze_alerts(60)),
-            (settings_window_sections()["Notifications"][2], lambda *_: self._snooze_alerts(240)),
-        ]), False, False, 0)
-
-        outer.pack_start(self._settings_section("Updates", [
-            (settings_window_sections()["Updates"][0], self._check_updates),
-            (settings_window_sections()["Updates"][1], self._update_now),
-        ]), False, False, 0)
-
-        outer.pack_start(self._settings_section(f"Startup ({autostart_status()})", [
-            (settings_window_sections()["Startup"][0], self._install_autostart),
-            (settings_window_sections()["Startup"][1], self._remove_autostart),
-        ]), False, False, 0)
-
+        footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        footer.set_margin_top(10)
+        footer.set_margin_bottom(12)
+        footer.set_margin_start(16)
+        footer.set_margin_end(16)
+        footer.pack_start(Gtk.Label(label=""), True, True, 0)
         close = Gtk.Button(label="Close")
+        close.get_style_context().add_class("suggested-action")
         close.connect("clicked", lambda *_: window.destroy())
-        outer.pack_end(close, False, False, 0)
+        footer.pack_end(close, False, False, 0)
+        outer.pack_end(footer, False, False, 0)
 
         self.settings_window = window
         window.show_all()
@@ -448,16 +483,103 @@ class TokenBarTray:
     def _on_settings_window_destroyed(self, *_args) -> None:
         self.settings_window = None
 
+    def _settings_header(self) -> Gtk.Box:
+        header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        header.get_style_context().add_class("settings-header")
+        header.set_margin_top(16)
+        header.set_margin_bottom(12)
+        header.set_margin_start(16)
+        header.set_margin_end(16)
+
+        icon = Gtk.Label(label="🪙")
+        icon.get_style_context().add_class("settings-icon")
+        header.pack_start(icon, False, False, 0)
+
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        title = Gtk.Label(label="TokenBar Settings")
+        title.set_xalign(0)
+        title.get_style_context().add_class("settings-title")
+        subtitle = Gtk.Label(label=settings_window_subtitle())
+        subtitle.set_xalign(0)
+        subtitle.get_style_context().add_class("settings-subtitle")
+        text.pack_start(title, False, False, 0)
+        text.pack_start(subtitle, False, False, 0)
+        header.pack_start(text, True, True, 0)
+        return header
+
+    def _settings_status_panel(self) -> Gtk.Frame:
+        frame = Gtk.Frame()
+        frame.get_style_context().add_class("status-card")
+        frame.set_margin_start(16)
+        frame.set_margin_end(16)
+        frame.set_margin_bottom(4)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        box.set_margin_top(10)
+        box.set_margin_bottom(10)
+        box.set_margin_start(12)
+        box.set_margin_end(12)
+        for line in self._settings_status_lines():
+            label = Gtk.Label(label=line)
+            label.set_xalign(0)
+            box.pack_start(label, False, False, 0)
+        frame.add(box)
+        return frame
+
+    def _settings_status_lines(self) -> list[str]:
+        autostart = autostart_status()
+        providers = self.config.providers
+        return [
+            f"Providers: Codex {'on' if providers.get('codex', True) else 'off'} · Claude {'on' if providers.get('claude', True) else 'off'}",
+            f"Refresh: every {self.config.refresh_interval_seconds}s · stale after {self.config.stale_after_minutes}m",
+            f"Autostart: {autostart}",
+        ]
+
     def _settings_section(self, title: str, actions: list[tuple[str, Any]]) -> Gtk.Frame:
         frame = Gtk.Frame(label=title)
-        grid = Gtk.Grid(column_spacing=8, row_spacing=8, margin_top=8, margin_bottom=8, margin_start=8, margin_end=8)
-        frame.add(grid)
-        for index, (label, callback) in enumerate(actions):
-            button = Gtk.Button(label=label)
-            button.set_hexpand(True)
+        frame.get_style_context().add_class("settings-card")
+        list_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        list_box.set_margin_top(10)
+        list_box.set_margin_bottom(10)
+        list_box.set_margin_start(10)
+        list_box.set_margin_end(10)
+        descriptions = settings_action_descriptions()
+        for label, callback in actions:
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            copy = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+            action_label = Gtk.Label(label=label)
+            action_label.set_xalign(0)
+            action_label.get_style_context().add_class("action-title")
+            description = Gtk.Label(label=descriptions.get(label, ""))
+            description.set_xalign(0)
+            description.set_line_wrap(True)
+            description.get_style_context().add_class("action-description")
+            copy.pack_start(action_label, False, False, 0)
+            copy.pack_start(description, False, False, 0)
+            row.pack_start(copy, True, True, 0)
+            button = Gtk.Button(label="Run")
+            button.set_size_request(90, -1)
             button.connect("clicked", callback)
-            grid.attach(button, index % 2, index // 2, 1, 1)
+            row.pack_end(button, False, False, 0)
+            list_box.pack_start(row, False, False, 0)
+        frame.add(list_box)
         return frame
+
+    def _install_settings_css(self) -> None:
+        css = b"""
+        .settings-header { background: #1f2937; border-radius: 14px; padding: 14px; }
+        .settings-icon { font-size: 30px; }
+        .settings-title { color: #f9fafb; font-size: 20px; font-weight: 700; }
+        .settings-subtitle { color: #d1d5db; }
+        .status-card { border-radius: 12px; border: 1px solid #d1d5db; }
+        .settings-card { border-radius: 12px; }
+        .action-title { font-weight: 600; }
+        .action-description { color: #6b7280; font-size: 12px; }
+        """
+        provider = Gtk.CssProvider()
+        provider.load_from_data(css)
+        screen = Gdk.Screen.get_default()
+        if screen is not None:
+            Gtk.StyleContext.add_provider_for_screen(screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
     def _init_config(self, *_args) -> None:
         path, created = ensure_config_file()
