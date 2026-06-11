@@ -157,7 +157,7 @@ Before release, TokenBar SHOULD provide an installer or package that installs th
 - GIVEN a supported Ubuntu GNOME machine with dependencies installed
 - WHEN the user installs TokenBar
 - THEN `tokenbar` SHALL be runnable from the desktop/session
-- AND the tray icon SHALL use the TokenBar coin icon
+- AND the tray icon SHALL use the TokenBar AI-token chip icon
 
 #### Scenario: Uninstall
 

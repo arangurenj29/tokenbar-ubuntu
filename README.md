@@ -236,7 +236,7 @@ The tray keeps raw technical details out of the main provider row so failures st
 
 - `Gtk.StatusIcon` is a pragmatic Linux MVP choice and may behave differently across desktops
 - OpenAI “API costs” and Codex “ChatGPT/Codex subscription usage” are different sources
-- The tray backend is selected automatically for Ubuntu sessions, preferring AppIndicator-compatible integration and using a custom coin-style TokenBar icon set
+- The tray backend is selected automatically for Ubuntu sessions, preferring AppIndicator-compatible integration and using a custom AI-token chip-style TokenBar icon set
 - If your desktop hides legacy tray icons, behavior may degrade
 
 ## Upstream reference

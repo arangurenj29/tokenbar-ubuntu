@@ -1,8 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-  <circle cx="32" cy="32" r="26" fill="#ffb347" stroke="#9c4f00" stroke-width="4"/>
-  <circle cx="32" cy="32" r="18" fill="#ffd18a" opacity="0.85"/>
-  <path d="M31 18c-6 0-10 3-10 8 0 10 18 6 18 13 0 2-2 4-7 4-4 0-8-1-11-3v6c3 2 6 2 9 3v4h5v-4c6-1 10-4 10-9 0-10-18-7-18-13 0-2 2-4 6-4 4 0 7 1 10 3v-6c-2-1-5-2-8-2v-4h-5v4Z" fill="#9c4f00"/>
-  <circle cx="49" cy="15" r="9" fill="#e67e22" stroke="#7a3600" stroke-width="2"/>
-  <rect x="47.4" y="10" width="3.2" height="7" rx="1.2" fill="#fff4dd"/>
-  <circle cx="49" cy="20" r="1.5" fill="#fff4dd"/>
+  <defs>
+    <linearGradient id="chip" x1="10" y1="8" x2="54" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FBBF24"/>
+      <stop offset="0.55" stop-color="#F97316"/>
+      <stop offset="1" stop-color="#C2410C"/>
+    </linearGradient>
+  </defs>
+  <rect x="13" y="13" width="38" height="38" rx="12" fill="url(#chip)" stroke="#FED7AA" stroke-width="3"/>
+  <g stroke="#FED7AA" stroke-width="3" stroke-linecap="round">
+    <path d="M20 7v7M32 7v7M44 7v7M20 50v7M32 50v7M44 50v7M7 20h7M7 32h7M7 44h7M50 20h7M50 32h7M50 44h7"/>
+  </g>
+  <g fill="none" stroke="#FFF7ED" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 38V26l9-5 9 5v12l-9 5-9-5Z"/>
+    <path d="M23 26l9 5 9-5M32 31v12"/>
+  </g>
+  <circle cx="24" cy="25" r="3" fill="#FFF7ED"/>
+  <circle cx="40" cy="25" r="3" fill="#FFF7ED"/>
+  <circle cx="32" cy="43" r="3" fill="#FFF7ED"/>
+  <circle cx="50" cy="14" r="9" fill="#EA580C" stroke="#7C2D12" stroke-width="2"/>
+  <rect x="48.6" y="9" width="2.8" height="7" rx="1.2" fill="#FFF7ED"/>
+  <circle cx="50" cy="19" r="1.5" fill="#FFF7ED"/>
 </svg>

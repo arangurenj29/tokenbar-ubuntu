@@ -491,7 +491,7 @@ class TokenBarTray:
         header.set_margin_start(16)
         header.set_margin_end(16)
 
-        icon = Gtk.Label(label="🪙")
+        icon = Gtk.Label(label="AI")
         icon.get_style_context().add_class("settings-icon")
         header.pack_start(icon, False, False, 0)
 

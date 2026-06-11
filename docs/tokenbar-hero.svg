@@ -5,10 +5,10 @@
       <stop offset="0.55" stop-color="#111827"/>
       <stop offset="1" stop-color="#312E81"/>
     </linearGradient>
-    <linearGradient id="coin" x1="470" y1="88" x2="815" y2="426" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FDE68A"/>
-      <stop offset="0.48" stop-color="#F59E0B"/>
-      <stop offset="1" stop-color="#B45309"/>
+    <linearGradient id="aiToken" x1="586" y1="18" x2="694" y2="126" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38BDF8"/>
+      <stop offset="0.55" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#4F46E5"/>
     </linearGradient>
     <linearGradient id="barGreen" x1="0" y1="0" x2="1" y2="0">
       <stop stop-color="#34D399"/>
@@ -48,8 +48,18 @@
     </g>
   </g>
   <g filter="url(#shadow)">
-    <circle cx="640" cy="72" r="54" fill="url(#coin)" stroke="#FEF3C7" stroke-width="7"/>
-    <text x="640" y="91" fill="#451A03" font-family="Inter, Ubuntu, Arial, sans-serif" font-size="54" font-weight="900" text-anchor="middle">₮</text>
+    <rect x="586" y="18" width="108" height="108" rx="30" fill="url(#aiToken)" stroke="#BAE6FD" stroke-width="7"/>
+    <g stroke="#BAE6FD" stroke-width="6" stroke-linecap="round">
+      <path d="M606 6v14M640 6v14M674 6v14M606 124v14M640 124v14M674 124v14M574 38h14M574 72h14M574 106h14M692 38h14M692 72h14M692 106h14"/>
+    </g>
+    <g fill="none" stroke="#ECFEFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M616 86V58l24-14 24 14v28l-24 14-24-14Z"/>
+      <path d="M616 58l24 14 24-14M640 72v28"/>
+    </g>
+    <circle cx="618" cy="56" r="6" fill="#ECFEFF"/>
+    <circle cx="662" cy="56" r="6" fill="#ECFEFF"/>
+    <circle cx="640" cy="100" r="6" fill="#ECFEFF"/>
+    <text x="640" y="82" fill="#E0F2FE" font-family="Inter, Ubuntu, Arial, sans-serif" font-size="22" font-weight="900" text-anchor="middle">AI</text>
   </g>
   <text x="640" y="585" fill="#CBD5E1" font-family="Inter, Ubuntu, Arial, sans-serif" font-size="26" font-weight="600" text-anchor="middle">Linux tray monitor for Codex/OpenAI and Claude Code quotas</text>
 </svg>
